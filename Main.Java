@@ -2,8 +2,8 @@
 // Henrijs Filips Verlis 12.grupa 231RDB066 
 // Terēze Estere Grants 17.grupa 231RDC025
 
-import java.util.Scanner;
 import java.io.*;
+import java.util.Scanner;
 import java.util.zip.*;
 
 public class Main {
@@ -26,14 +26,14 @@ public class Main {
                         String sourceFileName = scanner.nextLine();
                         System.out.println("archive name:");
                         String archiveName = scanner.nextLine();
-                        compressGZIP(sourceFileName, archiveName);
+                        compressOrDecompressGZIP(sourceFileName, archiveName, true);
                         break;
                     case "decomp":
                         System.out.println("archive name:");
                         String archiveFileName = scanner.nextLine();
                         System.out.println("file name:");
                         String outputFileName = scanner.nextLine();
-                        decompressGZIP(archiveFileName, outputFileName);
+                        compressOrDecompressGZIP(archiveFileName, outputFileName, false);
                         break;
                     case "size":
                         System.out.println("file name:");
@@ -56,51 +56,50 @@ public class Main {
                     default:
                         System.out.println("Invalid command");
                 }
-            } catch (Exception e) {
+            } catch (FileNotFoundException e) {
+                System.out.println("File not found: " + e.getMessage());
+            } catch (IOException e) {
                 System.out.println("An error occurred: " + e.getMessage());
             }
         }
     }
 
-    public static void compressGZIP(String sourceFileName, String archiveName) throws IOException {
-        FileInputStream in = new FileInputStream(sourceFileName);
-        GZIPOutputStream out = new GZIPOutputStream(new FileOutputStream(archiveName));
+    public static void compressOrDecompressGZIP(String sourceOrArchiveFileName, String targetFileName, boolean compress) throws IOException {
         byte[] buffer = new byte[1024];
         int len;
-        while ((len = in.read(buffer)) != -1) {
-            out.write(buffer, 0, len);
-        }
-        in.close();
-        out.finish();
-        out.close();
-    }
 
-    public static void decompressGZIP(String archiveFileName, String outputFileName) throws IOException {
-        GZIPInputStream in = new GZIPInputStream(new FileInputStream(archiveFileName));
-        FileOutputStream out = new FileOutputStream(outputFileName);
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = in.read(buffer)) != -1) {
-            out.write(buffer, 0, len);
+        if (compress) {
+            try (FileInputStream in = new FileInputStream(sourceOrArchiveFileName);
+                 GZIPOutputStream out = new GZIPOutputStream(new FileOutputStream(targetFileName))) {
+                while ((len = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, len);
+                }
+            }
+        } else {
+            try (GZIPInputStream in = new GZIPInputStream(new FileInputStream(sourceOrArchiveFileName));
+                 FileOutputStream out = new FileOutputStream(targetFileName)) {
+                while ((len = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, len);
+                }
+            }
         }
-        in.close();
-        out.close();
     }
 
     public static boolean compareFiles(String firstFileName, String secondFileName) throws IOException {
-        FileInputStream fis1 = new FileInputStream(firstFileName);
-        FileInputStream fis2 = new FileInputStream(secondFileName);
-        int b1, b2;
-        while (true) {
-            b1 = fis1.read();
-            b2 = fis2.read();
-            if (b1 != b2) {
-                return false;
+        try (FileInputStream fis1 = new FileInputStream(firstFileName);
+             FileInputStream fis2 = new FileInputStream(secondFileName)) {
+            int b1, b2;
+            while (true) {
+                b1 = fis1.read();
+                b2 = fis2.read();
+                if (b1 != b2) {
+                    return false;
+                }
+                if ((b1 == -1) || (b2 == -1)) {
+                    break;
+                }
             }
-            if ((b1 == -1) || (b2 == -1)) {
-                break;
-            }
+            return true;
         }
-        return true;
     }
 }
